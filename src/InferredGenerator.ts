@@ -1,3 +1,7 @@
+type MaybeAsyncGenerator<T, TReturn, TNext> =
+  | Generator<T, TReturn, TNext>
+  | AsyncGenerator<T, TReturn, TNext>;
+
 type EffectRequest<Key extends string, _Val> = Key & {
   readonly __type: _Val;
 };
@@ -13,14 +17,57 @@ class AlgebraBuilder<
   private cases: Partial<{ [Req in Reqs as RequestKey<Req>]: Req["__type"] }> =
     {};
 
-  static baseRequest = <Key extends string, Value = unknown>(key: Key) => ({
-    *[Symbol.iterator](): Generator<EffectRequest<Key, Value>, Value, Value> {
-      return yield key as EffectRequest<Key, Value>;
+  private firstRequest = true;
+  private key = "";
+  private requestIterator: Iterator<
+    EffectRequest<string, unknown>,
+    unknown,
+    unknown
+  > = {
+    next: (val: unknown) => {
+      if (this.firstRequest) {
+        this.firstRequest = false;
+        return {
+          done: false as const,
+          value: this.key as EffectRequest<string, unknown>,
+        };
+      }
+      this.firstRequest = true;
+      return { done: true as const, value: val };
     },
-    *as<Value>(): Generator<EffectRequest<Key, Value>, Value, Value> {
-      return yield key as EffectRequest<Key, Value>;
-    },
-  });
+  };
+
+  baseRequest = <Key extends string, Value = unknown>(
+    key: Key
+  ): {
+    [Symbol.iterator]: () => Iterator<EffectRequest<Key, Value>, Value, Value>;
+    as: <Value>() => {
+      [Symbol.iterator]: () => Iterator<EffectRequest<Key, Value>, Value>;
+    };
+  } => {
+    this.key = key;
+    return {
+      [Symbol.iterator]: () =>
+        this.requestIterator as Iterator<
+          EffectRequest<Key, Value>,
+          Value,
+          Value
+        >,
+      as: <Value>() => ({
+        [Symbol.iterator]: () =>
+          this.requestIterator as Iterator<EffectRequest<Key, Value>, Value>,
+      }),
+    };
+  };
+
+  //static baseRequest = <Key extends string, Value = unknown>(key: Key) => ({
+  //  *[Symbol.iterator](): Generator<EffectRequest<Key, Value>, Value, Value> {
+  //    return yield key as EffectRequest<Key, Value>;
+  //  },
+  //  *as<Value>(): Generator<EffectRequest<Key, Value>, Value, Value> {
+  //    return yield key as EffectRequest<Key, Value>;
+  //  },
+  //});
   // static *baseRequest<Key extends string, Value>(
   //   key: Key
   // ): Generator<EffectRequest<Key, Value>, Value, Value> {
@@ -29,9 +76,9 @@ class AlgebraBuilder<
 
   constructor(
     private algebraicEffector: (
-      request: typeof AlgebraBuilder.baseRequest,
+      request: InstanceType<typeof AlgebraBuilder>["baseRequest"],
       ...args: Args
-    ) => Generator<Reqs, Return, Reqs["__type"]>,
+    ) => MaybeAsyncGenerator<Reqs, Return, Reqs["__type"]>,
     private args: Args
   ) {}
 
@@ -43,16 +90,17 @@ class AlgebraBuilder<
     return this;
   }
 
-  public do(): Return {
-    let generator: Generator<Reqs, Return, Reqs["__type"]> | undefined =
-      this.algebraicEffector(AlgebraBuilder.baseRequest, ...this.args);
-    let currentKey: IteratorResult<Reqs, Return> = generator.next();
+  public async do(): Promise<Return> {
+    let generator:
+      | MaybeAsyncGenerator<Reqs, Return, Reqs["__type"]>
+      | undefined = this.algebraicEffector(this.baseRequest, ...this.args);
+    let currentKey: IteratorResult<Reqs, Return> = await generator.next();
     while (!currentKey.done) {
       if (!this.cases.hasOwnProperty(currentKey.value)) {
         throw new Error(`missing case "${currentKey.value}"`);
       }
 
-      currentKey = generator.next(
+      currentKey = await generator.next(
         (this.cases as { [key: string]: Reqs["__type"] })[currentKey.value]
       );
     }
@@ -68,29 +116,11 @@ export function algebra<
   Return
 >(
   algebraicEffector: (
-    request: typeof AlgebraBuilder.baseRequest,
+    request: InstanceType<typeof AlgebraBuilder>["baseRequest"],
     ...args: Args
-  ) => Generator<Reqs, Return, Reqs["__type"]>
+  ) => MaybeAsyncGenerator<Reqs, Return, Reqs["__type"]>
 ): (...args: Args) => AlgebraBuilder<Reqs, never, Args, Return> {
   return function (...args: Args) {
     return new AlgebraBuilder(algebraicEffector, args);
   };
 }
-
-//const inferredAlgebraic = algebra(function* (request) {
-//  const val = yield* request("test").as<number>();
-//  const otherVal = yield* request("secondTest").as<string>();
-//  if (false) yield* request("third").as<boolean>();
-//  const unknowable = yield* request("unknowable");
-//  return { vals: [val, otherVal] as [number, string], unknowable };
-//});
-//
-//console.log(process.memoryUsage().heapUsed);
-//for (let i = 0; i < 10000; i++) {
-//  inferredAlgebraic()
-//    .case("test", 0)
-//    .case("secondTest", "sdf")
-//    .case("unknowable", "gotcha!")
-//    .do();
-//}
-//console.log(process.memoryUsage().heapUsed);
