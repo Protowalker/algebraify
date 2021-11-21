@@ -1,9 +1,8 @@
-import { algebra } from "./InferredGenerator";
+import algebra from "../src";
 
-const inferredAlgebraic = algebra(function* (request) {
+const inferredAlgebraic = algebra(function* () {
   const val = yield "test";
   const otherVal = yield "secondTest";
-  if (false) yield "third";
   const unknowable = yield "unknowable";
   return { vals: [val, otherVal], unknowable };
 });
