@@ -9,6 +9,7 @@ This is a single-goal library that utilizes generators to add algebraic effects 
 ## Examples
 
 ### Javascript
+#### sync:
 ```js
 import algebra from "algebraify";
 const getUser = algebra(function* getUser(_, id) => {
@@ -25,8 +26,11 @@ const userString = getUser(100)
   .do();
 // userString will fallback to using the name john smith and the age 18 if those respective calls fail
 
-// Same setup, but async:
+```
 
+
+#### async:
+```js
 // Just change to an async generator function
 const getUser = algebra(async function* getUser(_, id) => {
   
