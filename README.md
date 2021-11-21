@@ -12,10 +12,10 @@ This is a single-goal library that utilizes generators to add algebraic effects 
 #### sync:
 ```js
 import algebra from "algebraify";
-const getUser = algebra(function* getUser(_, id) => {
+const getUser = algebra(function* getUser(_, id) {
   
-  const name = getNameOfUser(id) ?? yield "name";
-  const age = getAgeOfUser(id) ?? yield "age";
+  const name = getNameOfUser(id) ?? (yield "name");
+  const age = getAgeOfUser(id) ?? (yield "age");
   
   return `USER ${name}: ${age} years old`;
 });
@@ -32,10 +32,10 @@ const userString = getUser(100)
 #### async:
 ```js
 // Just change to an async generator function
-const getUser = algebra(async function* getUser(_, id) => {
+const getUser = algebra(async function* getUser(_, id) {
   
-  const name = await getNameOfUser(id) ?? yield "name";
-  const age = await getAgeOfUser(id) ?? yield "age";
+  const name = await getNameOfUser(id) ?? (yield "name");
+  const age = await getAgeOfUser(id) ?? (yield "age");
   
   return `USER ${name}: ${age} years old`;
 });
@@ -51,11 +51,11 @@ const userString = await getUser(100)
 ### Typescript
 ```ts
 import algebra from "algebraify";
-const getUser = algebra(function* getUser(request, id: number) => {
+const getUser = algebra(function* getUser(request, id: number) {
   
   // Note the calls to request and subsequent calls to as
-  const name = getNameOfUser(id) ?? yield* request("name").as<string>();
-  const age = getAgeOfUser(id) ?? yield* request("age").as<number>();
+  const name = getNameOfUser(id) ?? (yield* request("name").as<string>());
+  const age = getAgeOfUser(id) ?? (yield* request("age").as<number>());
   
   return `USER ${name}: ${age} years old`;
 });
