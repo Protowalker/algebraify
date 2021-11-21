@@ -1,21 +1,39 @@
-import algebra from "../src";
+import algebra from "../dist/index";
+import "jest";
 
-const inferredAlgebraic = algebra(function* (request) {
-  const val = yield* request("test").as<number>();
-  const otherVal = yield* request("secondTest").as<string>();
-  if (false) yield* request("third").as<boolean>();
-  const unknowable = yield* request("unknowable");
-  return { vals: [val * 10, otherVal] as [number, string], unknowable };
+test("Should return string interpolated with fallback values", () => {
+  const getNameOfUser = jest.fn((id): string | undefined => undefined);
+  const getAgeOfUser = jest.fn((id): number | undefined => undefined);
+
+  const getUser = algebra(function* getUser(request, id: number) {
+    const name = getNameOfUser(id) ?? (yield* request("name").as<string>());
+    const age = getAgeOfUser(id) ?? (yield* request("age").as<number>());
+    return `USER ${name}: ${age} years old`;
+  });
+  const userString = getUser(100)
+    .case("name", "John Smith")
+    .case("age", 18)
+    .do();
+  expect(userString).toBe("USER John Smith: 18 years old");
 });
+test("Should return string interpolated with fallback values -- ASYNC", async () => {
+  const getNameOfUser = jest.fn(
+    async (id): Promise<string | undefined> => undefined
+  );
+  const getAgeOfUser = jest.fn(
+    async (id): Promise<number | undefined> => undefined
+  );
 
-(async () => {
-  console.log(process.memoryUsage().heapUsed);
-  for (let i = 0; i < 10000; i++) {
-    await inferredAlgebraic()
-      .case("test", 3)
-      .case("secondTest", "sdf")
-      .case("unknowable", "gotcha!")
-      .do();
-  }
-  console.log(process.memoryUsage().heapUsed);
-})();
+  const getUser = algebra(async function* getUser(request, id: number) {
+    const name =
+      (await getNameOfUser(id)) ?? (yield* request("name").as<string>());
+    const age =
+      (await getAgeOfUser(id)) ?? (yield* request("age").as<number>());
+    return `USER ${name}: ${age} years old`;
+  });
+  const userString = await getUser(100)
+    .case("name", "John Smith")
+    .case("age", 18)
+    .do();
+  expect(userString).toBe("USER John Smith: 18 years old");
+});
