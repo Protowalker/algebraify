@@ -6,3 +6,11 @@
 
 This is a single-goal library that utilizes generators to add algebraic effects to javascript and typescript.
 
+## Examples
+
+Here's an example using javascript:
+```js
+import algebra from "algebraic";
+const getUser = algebraic(function* getUser(_, id) => {
+  
+});

@@ -1,6 +1,18 @@
-type MaybeAsyncGenerator<T, TReturn, TNext> =
+import { isPromise } from "util/types";
+
+type MaybeAsyncGenerator<T = unknown, TReturn = any, TNext = unknown> =
   | Generator<T, TReturn, TNext>
   | AsyncGenerator<T, TReturn, TNext>;
+
+type YieldType<Gen extends MaybeAsyncGenerator> = Gen extends AsyncGenerator<
+  unknown,
+  infer Return,
+  unknown
+>
+  ? Promise<Return>
+  : Gen extends Generator<unknown, infer Return, unknown>
+  ? Return
+  : never;
 
 type EffectRequest<Key extends string, _Val> = Key & {
   readonly __type: _Val;
@@ -12,6 +24,10 @@ class AlgebraBuilder<
   Reqs extends EffectRequest<string, unknown>,
   FilledReqs extends RequestKey<Reqs>,
   Args extends unknown[],
+  Effector extends (
+    request: InstanceType<typeof AlgebraBuilder>["baseRequest"],
+    ...args: Args
+  ) => MaybeAsyncGenerator<Reqs, Return, Reqs["__type"]>,
   Return
 > {
   private cases: Partial<{ [Req in Reqs as RequestKey<Req>]: Req["__type"] }> =
@@ -74,33 +90,46 @@ class AlgebraBuilder<
   //   return yield { key } as EffectRequest<Key, Value>;
   // }
 
-  constructor(
-    private algebraicEffector: (
-      request: InstanceType<typeof AlgebraBuilder>["baseRequest"],
-      ...args: Args
-    ) => MaybeAsyncGenerator<Reqs, Return, Reqs["__type"]>,
-    private args: Args
-  ) {}
+  constructor(private algebraicEffector: Effector, private args: Args) {}
 
   public case<Key extends Exclude<RequestKey<Reqs>, FilledReqs>>(
     key: Key,
     value: (Reqs & Key)["__type"]
-  ): AlgebraBuilder<Reqs, FilledReqs | Key, Args, Return> {
+  ): AlgebraBuilder<Reqs, FilledReqs | Key, Args, Effector, Return> {
     this.cases[key] = value;
     return this;
   }
 
-  public async do(): Promise<Return> {
-    let generator:
-      | MaybeAsyncGenerator<Reqs, Return, Reqs["__type"]>
-      | undefined = this.algebraicEffector(this.baseRequest, ...this.args);
-    let currentKey: IteratorResult<Reqs, Return> = await generator.next();
+  public do(): YieldType<ReturnType<Effector>>;
+  public do(): Promise<Return> | Return {
+    let generator = this.algebraicEffector(this.baseRequest, ...this.args);
+    let currentKey = generator.next();
+    if (isPromise(currentKey)) {
+      const promise = (async () => {
+        currentKey = await currentKey;
+        while (!currentKey.done) {
+          if (!this.cases.hasOwnProperty(currentKey.value)) {
+            throw new Error(`missing case "${currentKey.value}"`);
+          }
+
+          currentKey = await generator.next(
+            (this.cases as { [key: string]: Reqs["__type"] })[currentKey.value]
+          );
+        }
+
+        return currentKey.value;
+      })();
+      return promise;
+    }
+
+    generator = generator as Generator<Reqs, Return, Reqs["__type"]>;
+
     while (!currentKey.done) {
       if (!this.cases.hasOwnProperty(currentKey.value)) {
         throw new Error(`missing case "${currentKey.value}"`);
       }
 
-      currentKey = await generator.next(
+      currentKey = generator.next(
         (this.cases as { [key: string]: Reqs["__type"] })[currentKey.value]
       );
     }
@@ -119,7 +148,9 @@ export function algebra<
     request: InstanceType<typeof AlgebraBuilder>["baseRequest"],
     ...args: Args
   ) => MaybeAsyncGenerator<Reqs, Return, Reqs["__type"]>
-): (...args: Args) => AlgebraBuilder<Reqs, never, Args, Return> {
+): (
+  ...args: Args
+) => AlgebraBuilder<Reqs, never, Args, typeof algebraicEffector, Return> {
   return function (...args: Args) {
     return new AlgebraBuilder(algebraicEffector, args);
   };
