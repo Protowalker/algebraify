@@ -75,6 +75,8 @@ const userString = getUser(100)
 
 The request parameter is a function that returns a narrowly typed iterator. You don't need to know the details of how it works to use it; `yield* request("name").as<string>()` is basically the same as doing `yield "name"`, but using some type magic to tell typescript to trust us on the return type.
 
+## Future Plans
+I'm trying to find an ergonomic way to pass effects up the stack -- currently I don't have many ideas, and the ones I do have are vague. I also worry about coloring the stack a lot ([What Color Is Your Function?](https://journal.stuffwithstuff.com/2015/02/01/what-color-is-your-function/)). If you have any ideas, no matter how unsure you are of them, please feel free to make an issue for discussion or even send me a message on discord (@Protowalker (They/them)#1337).
 
 ## Contributing
 Please contribute! I've never made a library that I wanted other people to use before, and my experience with JS/TS is small compared to my programming career. I'd appreciate it a ton!
