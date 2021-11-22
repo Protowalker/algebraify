@@ -1,10 +1,13 @@
-# Algebraify ![npm](https://img.shields.io/npm/v/algebraify?style=for-the-badge)  ![GitHub issues](https://img.shields.io/github/issues/protowalker/algebraify?style=for-the-badge)
+# Algebraify [![npm](https://img.shields.io/npm/v/algebraify?style=for-the-badge)](https://www.npmjs.com/package/algebraify)  [![GitHub issues](https://img.shields.io/github/issues/protowalker/algebraify?style=for-the-badge)](https://github.com/Protowalker/algebraify/issues)
 
 ## Algebraic Effects Are Here! (sort of)
 
 (If you're unfamiliar with algebraic effects, here's a great article: [Algebraic Effects for the Rest of Us](https://overreacted.io/algebraic-effects-for-the-rest-of-us/))
 
 This is a single-goal library that utilizes generators to add algebraic effects to javascript and typescript.
+
+## Usage
+Add it to your project by using `npm install algebraify` or `yarn add algebraify`, in case you didn't know.
 
 ## Examples
 
