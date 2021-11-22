@@ -5,6 +5,10 @@
   "types": "./dist/index.d.ts",
   "license": "MIT",
   "typings": "./dist/index.d.ts",
+  "repository": {
+  "type": "git",
+  "url": "https://github.com/Protowalker/algebraify"
+  },
   "files": [
     "/dist"
   ],
