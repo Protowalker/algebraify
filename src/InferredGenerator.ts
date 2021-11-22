@@ -1,5 +1,3 @@
-import { isPromise } from "util/types";
-
 type MaybeAsyncGenerator<T = unknown, TReturn = any, TNext = unknown> =
   | Generator<T, TReturn, TNext>
   | AsyncGenerator<T, TReturn, TNext>;
@@ -104,7 +102,7 @@ class AlgebraBuilder<
   public do(): Promise<Return> | Return {
     let generator = this.algebraicEffector(this.baseRequest, ...this.args);
     let currentKey = generator.next();
-    if (isPromise(currentKey)) {
+    if (currentKey instanceof Promise) {
       const promise = (async () => {
         currentKey = await currentKey;
         while (!currentKey.done) {
