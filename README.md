@@ -6,6 +6,9 @@
 
 This is a single-goal library that utilizes generators to add algebraic effects to javascript and typescript.
 
+## Usage
+Add it to your project by using `npm install algebraify` or `yarn add algebraify`, in case you didn't know.
+
 ## Examples
 
 ### Javascript
