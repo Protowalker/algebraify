@@ -1,4 +1,6 @@
 # Algebraify
+![npm](https://img.shields.io/npm/v/algebraify?style=for-the-badge)  
+![GitHub issues](https://img.shields.io/github/issues/protowalker/algebraify?style=for-the-badge)
 
 ## Algebraic Effects Are Here! (sort of)
 
